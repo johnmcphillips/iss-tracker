@@ -3,7 +3,6 @@
 *.tfstate
 *.tfstate.*
 *.backup
-*.terraform.lock.hcl
 
 # Build artifacts
 lambda_get/python/
@@ -12,6 +11,7 @@ lambda_layer/
 *.zip
 *.pyc
 __pycache__/
+index.html
 
 # Local virtualenvs / tooling
 venv/
