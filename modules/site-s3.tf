@@ -58,22 +58,26 @@ resource "aws_s3_object" "index_html" {
     <script>
     async function trackISS() {
         try {
-            const response = await fetch("${("https://${aws_s3_bucket.iss_tracker_bucket.bucket_regional_domain_name}/iss_location_latest.json")}");
+            const response = await fetch("${("https://${aws_s3_bucket.iss_tracker_bucket.bucket_regional_domain_name}/data/iss_location_latest.json")}");
+            const history = await fetch("${("https://${aws_s3_bucket.iss_tracker_bucket.bucket_regional_domain_name}/data/history.json")}");
             const data = await response.json();
+            const historyData = await history.json();
 
-            const lat = data.latitude;
-            const lon = data.longitude;
-            const vel = data.velocity;
+            const lat = Number(data.latitude);
+            const lon = Number(data.longitude);
+            const vel = Number(data.velocity);
             document.getElementById('stats').innerHTML =
                 "Latitude:" +lat.toFixed(4) + " Longitude:"+ lon.toFixed(4) + " Velocity:"+ vel.toFixed(0) + " km/h";
-	        const map = L.map('map').setView([lat, lon], 5);
+	        const map = L.map('map').setView([lat, lon], 3);
 
             const tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
 	        	maxZoom: 19,
 	        	attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
 	        }).addTo(map);
-        
-        
+
+            const latlon = historyData.map(p => [Number(p.latitude), Number(p.longitude)]);
+            const line = L.polyline(latlon, {weight: 2, color: 'blue'}).addTo(map); 
+
 	        const circle = L.circle([lat, lon], {
 	        	color: 'red',
 	        	fillColor: '#f03',
