@@ -1,9 +1,9 @@
 resource "aws_s3_object" "index_html" {
-    bucket = aws_s3_bucket.iss_tracker_bucket.id
-    key = "index.html"
-    content_type = "text/html; charset=utf-8"
+  bucket       = aws_s3_bucket.iss_tracker_bucket.id
+  key          = "index.html"
+  content_type = "text/html; charset=utf-8"
 
-    content = <<EOT
+  content = <<EOT
     <!DOCTYPE html>
     <html lang="en">
     <head>
@@ -15,6 +15,7 @@ resource "aws_s3_object" "index_html" {
 
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
         <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+        <script src="https://cdn.jsdelivr.net/npm/leaflet.geodesic"></script>
         
         <style>
             html, body {
@@ -68,7 +69,7 @@ resource "aws_s3_object" "index_html" {
             const vel = Number(data.velocity);
             document.getElementById('stats').innerHTML =
                 "Latitude:" +lat.toFixed(4) + " Longitude:"+ lon.toFixed(4) + " Velocity:"+ vel.toFixed(0) + " km/h";
-	        const map = L.map('map').setView([lat, lon], 3);
+	        const map = L.map('map').setView([lat, lon], 1);
 
             const tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
 	        	maxZoom: 19,
@@ -76,8 +77,10 @@ resource "aws_s3_object" "index_html" {
 	        }).addTo(map);
 
             const latlon = historyData.map(p => [Number(p.latitude), Number(p.longitude)]);
-            const line = L.polyline(latlon, {weight: 2, color: 'blue'}).addTo(map); 
 
+            const line = new L.Geodesic([latlon], {smoothFactor: 1.5, weight: 1.5, color: 'blue'}).addTo(map); 
+
+            map.fitBounds(line.getBounds());
 	        const circle = L.circle([lat, lon], {
 	        	color: 'red',
 	        	fillColor: '#f03',
