@@ -73,7 +73,7 @@ resource "aws_iam_policy" "lambda_s3_policy" {
       },
       {
         Effect   = "Allow"
-        Action   = ["s3:PutObject", "s3:GetObject"]
+        Action   = ["s3:PutObject", "s3:GetObject", "s3:DeleteObject"]
         Resource = "${aws_s3_bucket.iss_tracker_bucket.arn}/*"
       }
     ]

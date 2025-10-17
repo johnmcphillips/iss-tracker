@@ -7,7 +7,3 @@
 - GET and store every 1 minute, keeping latest and historical timestamps
 - Roll-up point in time data to render polyline history
 - Render position of the ISS over OpenStreetMaps
-
-## Todo
-- Limit file history/clean up
-- Harden IAM policies

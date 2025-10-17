@@ -59,8 +59,9 @@ resource "aws_s3_object" "index_html" {
     <script>
     async function trackISS() {
         try {
-            const response = await fetch("${("https://${aws_s3_bucket.iss_tracker_bucket.bucket_regional_domain_name}/data/iss_location_latest.json")}");
-            const history = await fetch("${("https://${aws_s3_bucket.iss_tracker_bucket.bucket_regional_domain_name}/data/history.json")}");
+            const response = await fetch("https://${aws_s3_bucket.iss_tracker_bucket.bucket_regional_domain_name}/data/iss_location_latest.json", {cache: "no-store"});
+            const history = await fetch("https://${aws_s3_bucket.iss_tracker_bucket.bucket_regional_domain_name}/data/history.json", {cache: "no-store"});
+            
             const data = await response.json();
             const historyData = await history.json();
 

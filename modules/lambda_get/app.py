@@ -17,8 +17,7 @@ def roll_up_history():
     s3 = boto3.client("s3")
     response = s3.list_objects_v2(
         Bucket=bucket,
-        Prefix="data/points/"
-    )
+        Prefix="data/points/")
     files = response.get("Contents", [])
     for file in files:
         response = s3.get_object(
@@ -30,14 +29,22 @@ def roll_up_history():
         time = data["timestamp"]
         history.append({"latitude": lat, "longitude": lon, "timestamp": time})
     history.sort(key=lambda x: x["timestamp"], reverse=True)
-    s3.put_object(
+    return history
+
+def clean_up_history(max=300):
+    s3 = boto3.client("s3")
+    response = s3.list_objects_v2(
         Bucket=bucket,
-        Key=f"data/history.json",
-        Body=json.dumps(history),
-        ContentType="application/json")
+        Prefix="data/points")
+    files = response.get("Contents", [])
+    files.sort(key=lambda x: x["LastModified"])
+    for file in files[:-max]:
+        s3.delete_object(Bucket=bucket, Key=file["Key"])
+
 
 def lambda_handler(event, context):
     location = fetch_iss_location()
+    history = roll_up_history()
     s3 = boto3.client("s3")
     s3.put_object(
         Bucket=bucket, 
@@ -51,8 +58,14 @@ def lambda_handler(event, context):
         Body=json.dumps(location),
         ContentType="application/json")
     
-    roll_up_history()
+    s3.put_object(
+        Bucket=bucket,
+        Key=f"data/history.json",
+        Body=json.dumps(history),
+        ContentType="application/json")
     
+    clean_up_history()
+        
     return {
         "statusCode": 200,
         "body": json.dumps(location)
