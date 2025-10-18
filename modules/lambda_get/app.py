@@ -31,7 +31,7 @@ def roll_up_history():
     history.sort(key=lambda x: x["timestamp"], reverse=True)
     return history
 
-def clean_up_history(max=300):
+def clean_up_history(max=90):
     s3 = boto3.client("s3")
     response = s3.list_objects_v2(
         Bucket=bucket,
@@ -58,14 +58,14 @@ def lambda_handler(event, context):
         Body=json.dumps(location),
         ContentType="application/json")
     
+    clean_up_history()
+    
     s3.put_object(
         Bucket=bucket,
         Key=f"data/history.json",
         Body=json.dumps(history),
         ContentType="application/json")
-    
-    clean_up_history()
-        
+
     return {
         "statusCode": 200,
         "body": json.dumps(location)
