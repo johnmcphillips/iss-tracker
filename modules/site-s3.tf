@@ -115,7 +115,7 @@ resource "aws_s3_object" "index_html" {
     setInterval(trackISS, 10000);
     </script>
     <div id="footer">
-        <p>Data sourced from <a href="http://open-notify.org/Open-Notify-API/ISS-Location-Now/">Open Notify ISS API</a>. Built with Terraform and AWS.</p>
+        <p>Data sourced from <a href="https://wheretheiss.at/w/developer">"Where the ISS at?" REST API</a>. Built with Terraform and AWS.</p>
         <p>Author: <a href="https://github.com/johnmcphillips/iss-tracker">John McPhillips</a></p>
     </div>
     </body>
