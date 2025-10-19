@@ -1,3 +1,9 @@
+resource "aws_s3_object" "iss_icon" {
+  bucket       = aws_s3_bucket.iss_tracker_bucket.id
+  key          = "iss-icon.svg"
+  source       = "${path.module}/images/iss-icon.svg"
+  content_type = "image/svg+xml"
+}
 resource "aws_s3_object" "index_html" {
   bucket       = aws_s3_bucket.iss_tracker_bucket.id
   key          = "index.html"
@@ -10,7 +16,7 @@ resource "aws_s3_object" "index_html" {
         <base target="_top">
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-
+        <link rel="icon" type="image/x-icon" href="https://${aws_s3_bucket.iss_tracker_bucket.bucket_regional_domain_name}/iss-icon.svg">
         <title>Terraform ISS Tracker</title>
 
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
@@ -46,54 +52,72 @@ resource "aws_s3_object" "index_html" {
                 font-family: Arial, sans-serif;
                 margin-bottom: 20px;
             }
+            #footer {
+                text-align: center;
+                font-family: Arial, sans-serif;
+                font-size: 0.8em;
+                color: #555;
+                margin-top: 20px;
+            }
         </style>
     </head>
     <body>
         <div id="page">
         <h1>Live ISS Tracker</h1>
-        <p>Built with Terraform, powered by <a href="https://api.wheretheiss.at/v1/satellites/25544">https://api.wheretheiss.at/v1/satellites/25544</a></p>
-        <p>Source: <a href="https://github.com/johnmcphillips/iss-tracker">https://github.com/johnmcphillips/iss-tracker</a></p>
         </div>
     <div id="stats">Latitude: -<br>Longitude: -<br> Velocity: -</div>
     <div id="map"></div>
     <script>
+	const map = L.map('map', { worldCopyJump: true }).setView([0, 0], 1);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+	    maxZoom: 19,
+	    attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+	}).addTo(map);
+
+    let line = null;
+    let marker = null;
     async function trackISS() {
         try {
-            const response = await fetch("https://${aws_s3_bucket.iss_tracker_bucket.bucket_regional_domain_name}/data/iss_location_latest.json", {cache: "no-store"});
+            const current = await fetch("https://${aws_s3_bucket.iss_tracker_bucket.bucket_regional_domain_name}/data/iss_location_latest.json", {cache: "no-store"});
             const history = await fetch("https://${aws_s3_bucket.iss_tracker_bucket.bucket_regional_domain_name}/data/history.json", {cache: "no-store"});
             
-            const data = await response.json();
+            const currentLocation = await current.json();
             const historyData = await history.json();
 
-            const lat = Number(data.latitude);
-            const lon = Number(data.longitude);
-            const vel = Number(data.velocity);
+            const lat = Number(currentLocation.latitude);
+            const lon = Number(currentLocation.longitude);
+            const vel = Number(currentLocation.velocity);
+
             document.getElementById('stats').innerHTML =
                 "Latitude:" +lat.toFixed(4) + " Longitude:"+ lon.toFixed(4) + " Velocity:"+ vel.toFixed(0) + " km/h";
-	        const map = L.map('map').setView([lat, lon], 1);
-
-            const tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-	        	maxZoom: 19,
-	        	attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-	        }).addTo(map);
 
             const latlon = historyData.map(p => [Number(p.latitude), Number(p.longitude)]);
+            if (line) {
+                map.removeLayer(line);
+            }
+            if (marker) {
+                map.removeLayer(marker);
+            }
+            line = new L.Geodesic([latlon], {weight: 1.5, color: 'blue', opacity: 0.4}).addTo(map); 
 
-            const line = new L.Geodesic([latlon], {smoothFactor: 1.5, weight: 1.5, color: 'blue'}).addTo(map); 
+            var issicon = L.icon({
+                iconUrl: 'https://${aws_s3_bucket.iss_tracker_bucket.bucket_regional_domain_name}/iss-icon.svg',
+                iconSize: [25, 25]
+            });
 
-            map.fitBounds(line.getBounds());
-	        const circle = L.circle([lat, lon], {
-	        	color: 'red',
-	        	fillColor: '#f03',
-	        	fillOpacity: 0.5,
-	        	radius: 500
-	        }).addTo(map);
+	        marker = L.marker([lat, lon], {icon: issicon}).addTo(map);
+
         } catch (err) {
             console.error("No data:", err);
         }
     }
     trackISS();
+    setInterval(trackISS, 10000);
     </script>
+    <div id="footer">
+        <p>Data sourced from <a href="http://open-notify.org/Open-Notify-API/ISS-Location-Now/">Open Notify ISS API</a>. Built with Terraform and AWS.</p>
+        <p>Author: <a href="https://github.com/johnmcphillips/iss-tracker">John McPhillips</a></p>
+    </div>
     </body>
     </html>
     EOT

@@ -31,7 +31,7 @@ def roll_up_history():
     history.sort(key=lambda x: x["timestamp"], reverse=True)
     return history
 
-def clean_up_history(max=90):
+def clean_up_history(max=45):
     s3 = boto3.client("s3")
     response = s3.list_objects_v2(
         Bucket=bucket,
