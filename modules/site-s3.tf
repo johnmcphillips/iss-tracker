@@ -22,7 +22,7 @@ resource "aws_s3_object" "index_html" {
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
         <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
         <script src="https://cdn.jsdelivr.net/npm/leaflet.geodesic"></script>
-        
+        <script src="https://cdn.jsdelivr.net/npm/leaflet-ant-path@1.3.0/dist/leaflet-ant-path.min.js"></script>        
         <style>
             html, body {
                 height: 100%;
@@ -68,14 +68,25 @@ resource "aws_s3_object" "index_html" {
     <div id="stats">Latitude: -<br>Longitude: -<br> Velocity: -</div>
     <div id="map"></div>
     <script>
-	const map = L.map('map', { worldCopyJump: true }).setView([0, 0], 1);
+    const map = L.map('map', { worldCopyJump: true, preferCanvas: true }).setView([0, 0], 2);
+    L.control.scale({ metric: true }).addTo(map);
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        updateWhenIdle: true,
+        updateWhenZooming: false,
+        keepBuffer: 2,    
 	    maxZoom: 19,
+        worldCopyJump: true,
+        preferCanvas: true,
+        inertia: true,
+        zoomAnimation: true,
+        markerZoomAnimation: false,
+        tap: false,
 	    attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
 	}).addTo(map);
 
     let line = null;
     let marker = null;
+
     async function trackISS() {
         try {
             const current = await fetch("https://${aws_s3_bucket.iss_tracker_bucket.bucket_regional_domain_name}/data/iss_location_latest.json", {cache: "no-store"});
@@ -98,21 +109,22 @@ resource "aws_s3_object" "index_html" {
             if (marker) {
                 map.removeLayer(marker);
             }
-            line = new L.Geodesic([latlon], {weight: 1.5, color: 'blue', opacity: 0.4}).addTo(map); 
+            line = new L.Geodesic([latlon], {weight: 1.5, color: 'blue', opacity: 0.4, wrap: false, steps: 1}).addTo(map); 
 
             var issicon = L.icon({
                 iconUrl: 'https://${aws_s3_bucket.iss_tracker_bucket.bucket_regional_domain_name}/iss-icon.svg',
-                iconSize: [25, 25]
+                iconSize: [40, 40]
             });
 
-	        marker = L.marker([lat, lon], {icon: issicon}).addTo(map);
-
+	        marker = L.marker([lat, lon], {icon: issicon}).addTo(map)
+            map.setView([lat, lon], map.getZoom());
+            
         } catch (err) {
             console.error("No data:", err);
         }
     }
     trackISS();
-    setInterval(trackISS, 10000);
+    setInterval(trackISS, 30000);
     </script>
     <div id="footer">
         <p>Data sourced from <a href="https://wheretheiss.at/w/developer">"Where the ISS at?" REST API</a>. Built with Terraform and AWS.</p>
