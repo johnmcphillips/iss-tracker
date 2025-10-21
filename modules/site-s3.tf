@@ -113,7 +113,7 @@ resource "aws_s3_object" "index_html" {
 
             var issicon = L.icon({
                 iconUrl: 'https://${aws_s3_bucket.iss_tracker_bucket.bucket_regional_domain_name}/iss-icon.svg',
-                iconSize: [40, 40]
+                iconSize: [30, 30]
             });
 
 	        marker = L.marker([lat, lon], {icon: issicon}).addTo(map)

@@ -15,6 +15,7 @@ data "archive_file" "lambda_requirements" {
   source_dir  = "${path.module}/lambda_get"
   output_path = "${path.module}/.build/requirements.zip"
   depends_on  = [null_resource.create_layer]
+
 }
 
 data "archive_file" "lambda_zip" {
@@ -24,19 +25,25 @@ data "archive_file" "lambda_zip" {
 }
 
 resource "aws_lambda_layer_version" "lambda_library_layer" {
-  filename            = data.archive_file.lambda_requirements.output_path
-  layer_name          = "lambda_library_layer"
-  compatible_runtimes = ["python3.12"]
+  filename                 = data.archive_file.lambda_requirements.output_path
+  layer_name               = "lambda_library_layer"
+  compatible_runtimes      = ["python3.12"]
+  compatible_architectures = ["arm64"]
+  source_code_hash         = data.archive_file.lambda_requirements.output_base64sha256
 }
 resource "aws_lambda_function" "iss_tracker_lambda" {
-  function_name = "ISS-Tracker-Lambda"
-  role          = aws_iam_role.lambda_role.arn
-  handler       = "app.lambda_handler"
-  runtime       = "python3.12"
-  filename      = data.archive_file.lambda_zip.output_path
-  layers        = [aws_lambda_layer_version.lambda_library_layer.arn]
-  timeout       = 30
-  memory_size   = 256
+  function_name                  = "ISS-Tracker-Lambda"
+  role                           = aws_iam_role.lambda_role.arn
+  handler                        = "app.lambda_handler"
+  runtime                        = "python3.12"
+  filename                       = data.archive_file.lambda_zip.output_path
+  layers                         = [aws_lambda_layer_version.lambda_library_layer.arn]
+  timeout                        = 30
+  memory_size                    = 256
+  package_type                   = "Zip"
+  architectures                  = ["arm64"]
+  source_code_hash               = data.archive_file.lambda_zip.output_base64sha256
+  reserved_concurrent_executions = 1
   environment {
     variables = {
       BUCKET_NAME = aws_s3_bucket.iss_tracker_bucket.bucket
